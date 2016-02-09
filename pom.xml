@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.daw</groupId>
-    <artifactId>openausiasted</artifactId>
+    <artifactId>examen</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
 
-    <name>openausiasted</name>
+    <name>examen</name>
 
 
     <properties>
