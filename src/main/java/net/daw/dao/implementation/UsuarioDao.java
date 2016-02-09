@@ -26,6 +26,9 @@
  */
 package net.daw.dao.implementation;
 
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -169,25 +172,58 @@ public class UsuarioDao implements ViewDaoInterface<UsuarioBean>, TableDaoInterf
         return result;
     }
 
-public UsuarioBean getFromLogin(UsuarioBean oUsuario) throws Exception {
+
+    public UsuarioBean getFromLogin(UsuarioBean oUsuario) throws Exception {
         try {
-            String strId = oMysql.getId("usuario", "login", oUsuario.getLogin());
-            if (strId == null) {
-                oUsuario.setId(0);
-            } else {
-                Integer intId = Integer.parseInt(strId);
-                oUsuario.setId(intId);
-                String pass = oUsuario.getPassword();
-                oUsuario.setPassword(oMysql.getOne(strSQL, "password", oUsuario.getId()));
-                if (!pass.equals(oUsuario.getPassword())) {
-                    oUsuario.setId(0);
+          //  String hashCalculado = UsuarioDao.md5(oUsuario.getPassword());
+            strSQL="SELECT * FROM usuario where usuario.login="+"\""+oUsuario.getLogin()+"\"";
+            
+            ResultSet oResultSet = oMysql.getAllSql(strSQL);
+            
+            if(oResultSet != null){
+                while(oResultSet.next()){
+                    int id = oResultSet.getInt("id");
+                    oUsuario.setId(id);
+                    String password = oResultSet.getString("password");
+                    String hashCalculado = UsuarioDao.md5(password);
+                    if(!hashCalculado.equals(oUsuario.getPassword())){
+                        oUsuario.setId(0);
+                    }else{
+                        
+                        oUsuario = this.get(oUsuario, AppConfigurationHelper.getJsonDepth());
+                        
+                    }
                 }
-                oUsuario = this.get(oUsuario, AppConfigurationHelper.getJsonDepth());
             }
+            
             return oUsuario;
         } catch (Exception e) {
             throw new Exception("UsuarioDao.getFromLogin: Error: " + e.getMessage());
         }
     }
+    
+      public ArrayList<String> tipocomprado(int id) throws Exception {
+        ArrayList<String> alarray = new ArrayList<String>();
+
+        ResultSet existe = oMysql.getAllSql("SELECT tipoproducto.descripcion as descripcion FROM producto, tipoproducto, compra WHERE tipoproducto.id = producto.id_tipoproducto AND producto.id = compra.id_producto AND compra.id_usuario=" + id);
+        if (existe != null) {
+            while (existe.next()) {
+                alarray.add(existe.getString("descripcion"));
+            }
+        }
+
+        return alarray;
+    }
+    
+public static String md5(String input) throws NoSuchAlgorithmException{
+    if(input == null){
+        return null;
+    }else{
+        MessageDigest digest = MessageDigest.getInstance("MD5");
+        digest.update(input.getBytes(),0,input.length());
+        String md5 = new BigInteger(1, digest.digest()).toString(16);
+        return md5;
+    }
+}
 
 }

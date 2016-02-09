@@ -29,9 +29,13 @@ package net.daw.service.implementation;
 import com.google.gson.Gson;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import javax.servlet.http.HttpServletRequest;
 import net.daw.bean.implementation.UsuarioBean;
 import net.daw.connection.publicinterface.ConnectionInterface;
@@ -357,14 +361,73 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
             return JsonMessage.getJsonMsg("401", "Unauthorized");
         }
     }
-
+    
+    public String insertar() throws Exception {
+        if (this.checkpermission("insertar")) {
+            String nombre = oRequest.getParameter("nombre");
+            String ape1 = oRequest.getParameter("ape1");
+            String ape2 = oRequest.getParameter("ape2");
+            int sexo = ParameterCook.prepareInt("sexo", oRequest);
+            String fnac = oRequest.getParameter("fnac");
+            String resultado = null;
+            Connection oConnection = null;
+            ConnectionInterface oDataConnectionSource = null;
+            try {
+                oDataConnectionSource = getSourceConnection();
+                oConnection = oDataConnectionSource.newConnection();
+                oConnection.setAutoCommit(false);
+                UsuarioDao oUsuarioDao = new UsuarioDao(oConnection);
+                UsuarioBean oUsuarioBean = new UsuarioBean();
+                DateFormat format = new SimpleDateFormat("ddMMyyyy", Locale.ENGLISH);
+                Date fechaNacimiento = format.parse(fnac);
+                oUsuarioBean.setNombre(nombre);
+                oUsuarioBean.setApe1(ape1);
+                oUsuarioBean.setApe2(ape2);
+                oUsuarioBean.setSexo(sexo);
+                oUsuarioBean.setFnac(fechaNacimiento);
+                String login = nombre.substring(0, 3);
+                login +=ape1.substring(0, 3);
+                login +=ape2.substring(0,3);
+                login = login.toLowerCase();
+                oUsuarioBean.setLogin(login);
+                String password = oUsuarioDao.md5(login);
+                password = password.substring(0, 7);
+                oUsuarioBean.setPassword(password);
+                if (oUsuarioBean != null) {
+                    Integer iResult = oUsuarioDao.set(oUsuarioBean);
+                    if (iResult >= 1) {
+                        resultado = "{\"status\":OK,\"id\":" + iResult + ", login:\"" + oUsuarioBean.getLogin() + "\"}";
+                    } else {
+                        resultado = JsonMessage.getJson("500", "Error during registry set");
+                    }
+                } else {
+                    resultado = JsonMessage.getJson("500", "Error during registry set");
+                }
+                oConnection.commit();
+            } catch (Exception ex) {
+                oConnection.rollback();
+                ExceptionBooster.boost(new Exception(this.getClass().getName() + ":set ERROR: " + ex.getMessage()));
+            } finally {
+                if (oConnection != null) {
+                    oConnection.close();
+                }
+                if (oDataConnectionSource != null) {
+                    oDataConnectionSource.disposeConnection();
+                }
+            }
+            return resultado;
+        } else {
+            return JsonMessage.getJsonMsg("401", "Unauthorized");
+        }
+    }
+    
     public String login() throws SQLException, Exception {
         UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
         String strAnswer = null;
-        String strCode = "200";
+        String strCode = "OK";
         if (oUserBean == null) {
             String login = oRequest.getParameter("login");
-            String pass = oRequest.getParameter("password");
+            String pass = oRequest.getParameter("pass");
             if (!login.equals("") && !pass.equals("")) {
                 ConnectionInterface oDataConnectionSource = null;
                 Connection oConnection = null;
@@ -378,10 +441,9 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
                     oUsuario = oUsuarioDao.getFromLogin(oUsuario);
                     if (oUsuario.getId() != 0) {
                         oRequest.getSession().setAttribute("userBean", oUsuario);
-                        strAnswer = oUsuario.getLogin();
+                        strAnswer= "{\"status\":OK,\"usuario\":" + oUsuario.getId() + "}";
                     } else {
-                        strCode = "403";
-                        strAnswer = "User or password incorrect";
+                        strAnswer= "{\"status\":KO}";
                     }
                 } catch (Exception ex) {
                     ExceptionBooster.boost(new Exception(this.getClass().getName() + ":login ERROR " + ex.toString()));
@@ -397,14 +459,39 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
         } else {
             strAnswer = "Already logged in";
         }
-        return JsonMessage.getJsonMsg(strCode, strAnswer);
+        return strAnswer;
     }
-
-    public String logout() {
-        oRequest.getSession().invalidate();
-        return JsonMessage.getJsonMsg("200", "Bye");
+    
+     public String check()throws Exception {
+        ConnectionInterface oDataConnectionSource = null;
+        Connection oConnection = null;
+        oDataConnectionSource = getSourceConnection();
+        oConnection = oDataConnectionSource.newConnection();
+        UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
+        ArrayList<String> alarray = new ArrayList<String>();
+        if (oUserBean == null) {
+            return "{\"status\":KO}";
+        } else {
+           UsuarioDao oUsuarioDao = new UsuarioDao(oConnection);
+           alarray = oUsuarioDao.tipocomprado(oUserBean.getId());
+            return "{\"status\":OK,\"id\":" + oUserBean.getId() + ", \"nombrecompleto\":" + oUserBean.getNombre() + " " + oUserBean.getApe1() + " " + oUserBean.getApe2() +"}";
+        }
     }
+    
+    
 
+     public String logout() {
+        UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
+        if (oUserBean == null) {
+            return "{\"status\":KO}";
+        } else {
+            oRequest.getSession().invalidate();
+            return "{\"status\":OK}";
+        }
+    }
+    
+     
+     
     public String getsessionstatus() {
         String strAnswer = null;
         UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
@@ -421,8 +508,13 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
         if (oUserBean == null) {
             return 0;
         } else {
-            return oUserBean.getId_estado();
+            return oUserBean.getId();
         }
     }
 
 }
+
+
+/*SELECT *, TIMESTAMPDIFF(YEAR, fnac, CURDATE()) AS edad FROM usuario*/
+
+/*SELECT *, TIMESTAMPDIFF(YEAR, fnac, CURDATE()) AS edad FROM usuario,compra,producto where TIMESTAMPDIFF(YEAR, fnac, CURDATE())> 25 and compra.id_usuario = usuario.id and compra.cantidad >5 and compra.id_producto = producto.id*/

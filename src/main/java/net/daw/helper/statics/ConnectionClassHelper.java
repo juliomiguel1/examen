@@ -42,7 +42,7 @@ public class ConnectionClassHelper {
         if (ConnectionClassHelper.getOpenShift()) {
             return System.getenv("OPENSHIFT_GEAR_NAME");
         } else {
-            return "openausiasted";
+            return "examen-serv-1ev-2015-2016";
         }
     }
 
@@ -69,7 +69,7 @@ public class ConnectionClassHelper {
             return System.getenv("OPENSHIFT_MYSQL_DB_PORT");
             //se obtiene en el phpmyadmin
         } else {
-            return "3306";
+            return "3307";
         }
     }
 
