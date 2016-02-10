@@ -438,12 +438,16 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
                     oUsuario.setLogin(login);
                     oUsuario.setPassword(pass);
                     UsuarioDao oUsuarioDao = new UsuarioDao(oConnection);
+                    String fechas = new SimpleDateFormat("yyyyMMddhhmmss").format(oUsuario.getUltimaconexion());
                     oUsuario = oUsuarioDao.getFromLogin(oUsuario);
                     if (oUsuario.getId() != 0) {
-                        oRequest.getSession().setAttribute("userBean", oUsuario);
-                        strAnswer= "{\"status\":OK,\"usuario\":" + oUsuario.getId() + "}";
+                        oRequest.getSession().setAttribute("userBean", oUsuario);   
+                        strAnswer= "{\"status\":session,\"ultimaconexion\":" + fechas + "\"}";
+                        Date nuevaconexion = new Date();
+                        oUsuario.setUltimaconexion(nuevaconexion);
+                        oUsuarioDao.set(oUsuario);
                     } else {
-                        strAnswer= "{\"status\":KO}";
+                        strAnswer= "{\"status\":nosession}";
                     }
                 } catch (Exception ex) {
                     ExceptionBooster.boost(new Exception(this.getClass().getName() + ":login ERROR " + ex.toString()));
@@ -470,11 +474,11 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
         UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
         ArrayList<String> alarray = new ArrayList<String>();
         if (oUserBean == null) {
-            return "{\"status\":KO}";
+            return "{\"status\":\"nosession\"}";
         } else {
            UsuarioDao oUsuarioDao = new UsuarioDao(oConnection);
            alarray = oUsuarioDao.tipocomprado(oUserBean.getId());
-            return "{\"status\":OK,\"id\":" + oUserBean.getId() + ", \"nombrecompleto\":" + oUserBean.getNombre() + " " + oUserBean.getApe1() + " " + oUserBean.getApe2() +"}";
+            return "{\"status\":OK,\"id\":" + oUserBean.getId() + ", \"nombrecompleto\":\"" + oUserBean.getNombre() + " " + oUserBean.getApe1() + " " + oUserBean.getApe2() +"\"}";
         }
     }
     
@@ -483,10 +487,10 @@ public class UsuarioService implements TableServiceInterface, ViewServiceInterfa
      public String logout() {
         UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
         if (oUserBean == null) {
-            return "{\"status\":KO}";
+            return "{\"status\":\"error\"}";
         } else {
             oRequest.getSession().invalidate();
-            return "{\"status\":OK}";
+            return "{\"status\":\"nosession\"}";
         }
     }
     

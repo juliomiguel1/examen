@@ -30,6 +30,7 @@ import com.google.gson.annotations.Expose;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import net.daw.bean.publicinterface.GenericBean;
 import net.daw.dao.implementation.EstadoDao;
@@ -55,6 +56,9 @@ public class UsuarioBean implements GenericBean {
     private Date fnac = new Date();
     @Expose
     private String password = "";
+    @Expose
+    private Date ultimaconexion = new Date();
+    
 
     public UsuarioBean() {
         this.id = 0;
@@ -77,6 +81,7 @@ public class UsuarioBean implements GenericBean {
         strJson += "login:" + EncodingUtilHelper.quotate(login) + ",";
         strJson += "fnac:" + EncodingUtilHelper.stringifyAndQuotate(fnac) + ",";
         strJson += "password:" + EncodingUtilHelper.quotate(password) + ",";
+        strJson += "ultimaconexion:" + EncodingUtilHelper.stringifyAndQuotate(ultimaconexion) + ",";
         strJson += "}";
         return strJson;
     }
@@ -91,7 +96,8 @@ public class UsuarioBean implements GenericBean {
         strColumns += "sexo,";
         strColumns += "login,";
         strColumns += "fnac,";
-        strColumns += "password";
+        strColumns += "password,";
+        strColumns += "ultimaconexion";
 
         return strColumns;
     }
@@ -106,13 +112,15 @@ public class UsuarioBean implements GenericBean {
         strColumns += sexo + ",";
         strColumns += EncodingUtilHelper.quotate(login) + ",";
         strColumns += EncodingUtilHelper.stringifyAndQuotate(fnac)+ ",";
-        strColumns += EncodingUtilHelper.quotate(password);
-
+        strColumns += EncodingUtilHelper.quotate(password)+ ",";
+        strColumns += EncodingUtilHelper.stringifyAndQuotate(ultimaconexion);
         return strColumns;
     }
 
     @Override
     public String toPairs() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        
         String strPairs = "";
         strPairs += "id=" + getId() + ",";
         strPairs += "nombre=" + EncodingUtilHelper.quotate(getNombre()) + ",";
@@ -121,7 +129,8 @@ public class UsuarioBean implements GenericBean {
         strPairs += "sexo=" + sexo + ",";
         strPairs += "login=" + EncodingUtilHelper.quotate(getLogin()) + ",";
         strPairs += "fnac=" + EncodingUtilHelper.stringifyAndQuotate(fnac) + ",";
-        strPairs += "password=" + EncodingUtilHelper.quotate(password);
+        strPairs += "password=" + EncodingUtilHelper.quotate(password) + ",";
+        strPairs += "ultimaconexion=" + "CURRENT_TIMESTAMP";
         return strPairs;
     }
 
@@ -135,6 +144,7 @@ public class UsuarioBean implements GenericBean {
         this.setLogin(oResultSet.getString("login"));
         this.setFnac(oResultSet.getDate("fnac"));
         this.setPassword(oResultSet.getString("password"));
+        this.setUltimaconexion(oResultSet.getDate("ultimaconexion"));
         return this;
 
     }
@@ -249,6 +259,20 @@ public class UsuarioBean implements GenericBean {
      */
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    /**
+     * @return the ultimaconexion
+     */
+    public Date getUltimaconexion() {
+        return ultimaconexion;
+    }
+
+    /**
+     * @param ultimaconexion the ultimaconexion to set
+     */
+    public void setUltimaconexion(Date ultimaconexion) {
+        this.ultimaconexion = ultimaconexion;
     }
 
 }

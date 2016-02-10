@@ -141,6 +141,9 @@ public class UsuarioDao implements ViewDaoInterface<UsuarioBean>, TableDaoInterf
 
     @Override
     public Integer set(UsuarioBean oUsuarioBean) throws Exception {
+        
+           
+        
           Integer iResult = null;
         try {
             if (oUsuarioBean.getId() == 0) {
@@ -185,8 +188,7 @@ public class UsuarioDao implements ViewDaoInterface<UsuarioBean>, TableDaoInterf
                     int id = oResultSet.getInt("id");
                     oUsuario.setId(id);
                     String password = oResultSet.getString("password");
-                    String hashCalculado = UsuarioDao.md5(password);
-                    if(!hashCalculado.equals(oUsuario.getPassword())){
+                    if(!password.equals(oUsuario.getPassword())){
                         oUsuario.setId(0);
                     }else{
                         

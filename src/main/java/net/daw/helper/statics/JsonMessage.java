@@ -35,7 +35,7 @@ public class JsonMessage {
     public static String getJsonMsg(String strStatus, String strMessage) {
         Map<String, String> data = new HashMap<>();
         data.put("status", strStatus);
-        data.put("message", strMessage);
+        data.put("compras", strMessage);
         Gson gson = new Gson();
         return gson.toJson(data);
     }

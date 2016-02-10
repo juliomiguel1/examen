@@ -57,7 +57,7 @@ public class CompraBean implements GenericBean{
     @Expose
     private Integer cantidad = 0;
     @Expose
-    private Date fecha = new Date();
+    private Date momento = new Date();
     
     public CompraBean() {
         this.id = 0;
@@ -154,15 +154,15 @@ public class CompraBean implements GenericBean{
     /**
      * @return the fecha
      */
-    public Date getFecha() {
-        return fecha;
+    public Date getMomento() {
+        return momento;
     }
 
     /**
      * @param fecha the fecha to set
      */
-    public void setFecha(Date fecha) {
-        this.fecha = fecha;
+    public void setMomento(Date momento) {
+        this.momento = momento;
     }
 
     @Override
@@ -172,7 +172,7 @@ public class CompraBean implements GenericBean{
         strColumns += "id_usuario,";
         strColumns += "id_producto,";
         strColumns += "cantidad,";
-        strColumns += "fecha";
+        strColumns += "momento";
         return strColumns;
     }
 
@@ -183,7 +183,7 @@ public class CompraBean implements GenericBean{
         strColumns += id_usuario + ",";
         strColumns += id_producto + ",";
         strColumns += cantidad + ",";
-        strColumns += EncodingUtilHelper.stringifyAndQuotate(fecha);
+        strColumns += "CURRENT_TIMESTAMP";
         return strColumns;
     }
 
@@ -195,7 +195,7 @@ public class CompraBean implements GenericBean{
         strPairs += "id_usuario=" + id_usuario + ",";
         strPairs += "id_producto=" + id_producto + ",";
         strPairs += "cantidad=" + cantidad + ",";
-        strPairs += "fecha=" +  EncodingUtilHelper.stringifyAndQuotate(fecha);
+        strPairs += "momento=" +  EncodingUtilHelper.stringifyAndQuotate(momento);
         
         return strPairs;
     }
@@ -221,7 +221,8 @@ public class CompraBean implements GenericBean{
         } else {
             this.setId_producto(oResultSet.getInt("id_producto"));
         }
-        
+        this.setCantidad(oResultSet.getInt("cantidad"));
+        this.setMomento(oResultSet.getDate("momento"));
      return this;
     }
     

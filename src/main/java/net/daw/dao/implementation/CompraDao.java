@@ -32,6 +32,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import net.daw.bean.implementation.CompraBean;
+import net.daw.bean.implementation.UltimasComprasBean;
 import net.daw.data.implementation.MysqlDataSpImpl;
 import net.daw.helper.statics.ExceptionBooster;
 import net.daw.helper.statics.FilterBeanHelper;
@@ -56,18 +57,100 @@ public class CompraDao {
         }
     }
     
-    public ArrayList<CompraBean> getAll(int cantidad, int edad,ArrayList<FilterBeanHelper> alFilter, HashMap<String, String> hmOrder, Integer expand) throws Exception {
+    public ArrayList<UltimasComprasBean> getAll(int cantidad, int usuario,ArrayList<FilterBeanHelper> alFilter, HashMap<String, String> hmOrder, Integer expand) throws Exception {
     
-     ArrayList<CompraBean> arrCompra = new ArrayList<>();
+     ArrayList<UltimasComprasBean> arrCompra = new ArrayList<>();
      
-     strSQL = "SELECT compra.* FROM usuario,compra,producto where TIMESTAMPDIFF(YEAR, fnac, CURDATE())>"+edad+" and compra.id_usuario = usuario.id and compra.cantidad >"+cantidad+" and compra.id_producto = producto.id";
+     strSQL = "select producto.codigo, producto.descripcion, producto.precio, compra.cantidad, tipoproducto.descripcion AS tipo from compra, producto, tipoproducto WHERE compra.id_producto= producto.id and producto.id_tipoproducto = tipoproducto.id and compra.id_usuario = "+usuario +" ORDER BY compra.momento DESC LIMIT "+cantidad;
      ResultSet oResultSet = oMysql.getAllSql(strSQL);
      if(oResultSet != null){
          while(oResultSet.next()){
-              CompraBean oCompraBean = new CompraBean();
-              arrCompra.add(oCompraBean.fill(oResultSet, oConnection, expand));
+              UltimasComprasBean oUltimasComprasBean = new UltimasComprasBean();
+              arrCompra.add(oUltimasComprasBean.fill(oResultSet, oConnection, expand));
          }
      }
      return arrCompra;
     }
+    
+    public int getprecio(int cantidad, int usuario,ArrayList<FilterBeanHelper> alFilter, HashMap<String, String> hmOrder, Integer expand) throws Exception {
+    
+     int precio = 0;
+     
+     strSQL = "select  producto.precio from compra, producto, tipoproducto WHERE compra.id_producto= producto.id and producto.id_tipoproducto = tipoproducto.id and compra.id_usuario = "+usuario +" ORDER BY compra.momento DESC LIMIT "+cantidad;
+     ResultSet oResultSet = oMysql.getAllSql(strSQL);
+     if(oResultSet != null){
+         while(oResultSet.next()){
+             
+              precio += oResultSet.getInt("precio");
+         }
+     }
+     return precio;
+    }
+    
+    public int existeusuario(CompraBean oCompraBean)throws Exception{
+    
+        int valor = 0;
+        
+        String existeusuario = "select * from usuario where usuario.id="+oCompraBean.getId_usuario();
+        
+        ResultSet oResultSet = oMysql.getAllSql(existeusuario);
+        if(oResultSet != null){
+            
+            while(oResultSet.next()){
+                
+                valor = oResultSet.getInt("id");
+                
+            }
+            }
+            
+        
+        
+    return valor;
+    }
+    
+    
+    public int existeproducto(CompraBean oCompraBean)throws Exception{
+    
+        int valor = 0;
+        
+        
+            String existeproducto = "select * from producto where producto.id="+oCompraBean.getId_producto();
+            ResultSet oResultSetproducto = oMysql.getAllSql(existeproducto);
+            if(oResultSetproducto != null){
+                while(oResultSetproducto.next()){
+                
+                valor = oResultSetproducto.getInt("id");
+                
+            }
+            }
+            
+        
+    return valor;
+    }
+    
+    
+    public Integer set(CompraBean oCompraBean) throws Exception {
+        
+           
+        
+          Integer iResult = null;
+        try {
+            if (oCompraBean.getId() == 0) {
+                strSQL = "INSERT INTO " + strTable + " ";
+                strSQL += "(" + oCompraBean.getColumns() + ") ";
+                strSQL += "VALUES (" + oCompraBean.getValues() + ")";
+                iResult = oMysql.executeInsertSQL(strSQL);
+            } else {
+                strSQL = "UPDATE " + strTable + " ";
+                strSQL += " SET " + oCompraBean.toPairs();
+                strSQL += " WHERE id=" + oCompraBean.getId();
+                iResult = oMysql.executeUpdateSQL(strSQL);
+            }
+
+        } catch (Exception ex) {
+            ExceptionBooster.boost(new Exception(this.getClass().getName() + ":set ERROR: " + ex.getMessage()));
+        }
+        return iResult;
+    }
+    
 }

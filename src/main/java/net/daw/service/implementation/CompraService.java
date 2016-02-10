@@ -28,10 +28,14 @@
 package net.daw.service.implementation;
 
 import java.sql.Connection;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import javax.servlet.http.HttpServletRequest;
 import net.daw.bean.implementation.CompraBean;
+import net.daw.bean.implementation.UltimasComprasBean;
 import net.daw.bean.implementation.UsuarioBean;
 import net.daw.connection.publicinterface.ConnectionInterface;
 import net.daw.dao.implementation.CompraDao;
@@ -64,27 +68,111 @@ public class CompraService implements TableServiceInterface, ViewServiceInterfac
             return false;
         }
     }
-    
-    public String listar() throws Exception {
-        if (this.checkpermission("listar")) {
-            ArrayList<FilterBeanHelper> alFilter = ParameterCook.prepareFilter(oRequest);
-            HashMap<String, String> hmOrder = ParameterCook.prepareOrder(oRequest);
-         String data = null;
-         int edad = ParameterCook.prepareInt("edad", oRequest);
-         int cantidad = ParameterCook.prepareInt("cantidad", oRequest);
-         Connection oConnection = null;
-         ConnectionInterface oDataConnectionSource = null;
-         try{
+//
+//    public String listar() throws Exception {
+//        if (this.checkpermission("listar")) {
+//            ArrayList<FilterBeanHelper> alFilter = ParameterCook.prepareFilter(oRequest);
+//            HashMap<String, String> hmOrder = ParameterCook.prepareOrder(oRequest);
+//            String data = null;
+//            int edad = ParameterCook.prepareInt("edad", oRequest);
+//            int cantidad = ParameterCook.prepareInt("cantidad", oRequest);
+//            Connection oConnection = null;
+//            ConnectionInterface oDataConnectionSource = null;
+//            try {
+//                oDataConnectionSource = getSourceConnection();
+//                oConnection = oDataConnectionSource.newConnection();
+//                CompraDao oCompraDao = new CompraDao(oConnection);
+//                ArrayList<CompraBean> arrBeans = oCompraDao.getAll(cantidad, edad, alFilter, hmOrder, 1);
+//                data = JsonMessage.getJson("200", AppConfigurationHelper.getGson().toJson(arrBeans));
+//
+//            } catch (Exception ex) {
+//                oConnection.rollback();
+//                ExceptionBooster.boost(new Exception(this.getClass().getName() + ":set ERROR: " + ex.getMessage()));
+//            } finally {
+//                if (oConnection != null) {
+//                    oConnection.close();
+//                }
+//                if (oDataConnectionSource != null) {
+//                    oDataConnectionSource.disposeConnection();
+//                }
+//            }
+//            return data;
+//        } else {
+//            return JsonMessage.getJsonMsg("401", "Unauthorized");
+//        }
+//    }
+
+    @Override
+    public String set() throws Exception {
+        ConnectionInterface oDataConnectionSource = null;
+        Connection oConnection = null;
+        oDataConnectionSource = getSourceConnection();
+        oConnection = oDataConnectionSource.newConnection();
+        UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
+        ArrayList<String> alarray = new ArrayList<String>();
+        if (oUserBean == null) {
+            return "{\"status\":\"nosession\"}";
+        } else {
+            int id_producto = ParameterCook.prepareInt("id_producto", oRequest);
+            int cantidad = ParameterCook.prepareInt("cantidad", oRequest);
+            int id_usuario = ParameterCook.prepareInt("id_usuario", oRequest);
+            CompraDao oCompraDao = new CompraDao(oConnection);
+            CompraBean oCompraBean = new CompraBean();
+            oCompraBean.setId_producto(id_producto);
+            oCompraBean.setCantidad(cantidad);
+            oCompraBean.setId_usuario(id_usuario);
+            Date fecha = new Date();
+            //DateFormat hourdateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+            //fecha = hourdateFormat.format(fecha);
+            oCompraBean.setMomento(fecha);
+
+            int existeusuario = oCompraDao.existeusuario(oCompraBean);
+            int existeproducto = oCompraDao.existeproducto(oCompraBean);
+
+            if (existeproducto == 0) {
+                return "{\"status\":\"error: no existe el producto\"}";
+            } else if (existeusuario == 0) {
+                return "{\"status\":\"error: no existe el usuario\"}";
+            } else if (existeproducto != 0 && existeusuario != 0) {
+                Integer iResult = oCompraDao.set(oCompraBean);
+                if (iResult >= 1) {
+                    return "{\"status\":OK, \"id\":\"" + iResult.toString() + "\"}";
+                } else {
+                    return "{\"status\":\"error\"}";
+                }
+            } else {
+                return "{\"status\":\"error\"}";
+            }
+        }
+    }
+
+    public String ultimascompras() throws Exception {
+        ConnectionInterface oDataConnectionSource = null;
+        Connection oConnection = null;
+        oDataConnectionSource = getSourceConnection();
+        oConnection = oDataConnectionSource.newConnection();
+        String data = null;
+        UsuarioBean oUserBean = (UsuarioBean) oRequest.getSession().getAttribute("userBean");
+        ArrayList<String> alarray = new ArrayList<String>();
+        if (oUserBean == null) {
+            return "{\"status\":\"nosession\"}";
+        } else {
+
+            try {
                 oDataConnectionSource = getSourceConnection();
                 oConnection = oDataConnectionSource.newConnection();
                 CompraDao oCompraDao = new CompraDao(oConnection);
-                ArrayList<CompraBean> arrBeans = oCompraDao.getAll(cantidad, edad,alFilter, hmOrder, 1);
-                data = JsonMessage.getJson("200", AppConfigurationHelper.getGson().toJson(arrBeans));
-             
-         }
-         catch (Exception ex) {
-                oConnection.rollback();
-                ExceptionBooster.boost(new Exception(this.getClass().getName() + ":set ERROR: " + ex.getMessage()));
+                ArrayList<FilterBeanHelper> alFilter = ParameterCook.prepareFilter(oRequest);
+                HashMap<String, String> hmOrder = ParameterCook.prepareOrder(oRequest);
+                int cantidad = ParameterCook.prepareInt("cantidad", oRequest);
+                int id_usuario = ParameterCook.prepareInt("id_usuario", oRequest);
+                
+                int precio = oCompraDao.getprecio(cantidad, id_usuario, alFilter, hmOrder, cantidad);
+              //  CompraBean oCompraBean = new CompraBean();                                
+                ArrayList<UltimasComprasBean> arrBeans = oCompraDao.getAll(cantidad, id_usuario,alFilter, hmOrder, 1);
+                return "{\"status\":\"OK\", \"total\":"+(precio*1.21)+",\"compras\":"+AppConfigurationHelper.getGson().toJson(arrBeans)+"}";
+            } catch (Exception ex) {
+                ExceptionBooster.boost(new Exception(this.getClass().getName() + ":getAll ERROR: " + ex.getMessage()));
             } finally {
                 if (oConnection != null) {
                     oConnection.close();
@@ -93,49 +181,46 @@ public class CompraService implements TableServiceInterface, ViewServiceInterfac
                     oDataConnectionSource.disposeConnection();
                 }
             }
-         return data;
-        }else{
-        return JsonMessage.getJsonMsg("401", "Unauthorized");
-        }        
+
+            return data;
+        }
     }
 
-    @Override
-    public String get() throws Exception {
+
+@Override
+        public String get() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public String remove() throws Exception {
+        public String remove() throws Exception {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    
+
+    @Override
+        public String getall() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public String set() throws Exception {
+        public String getpage() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public String getall() throws Exception {
+        public String getpages() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public String getpage() throws Exception {
+        public String getcount() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public String getpages() throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public String getcount() throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public String getaggregateviewsome() throws Exception {
+        public String getaggregateviewsome() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
